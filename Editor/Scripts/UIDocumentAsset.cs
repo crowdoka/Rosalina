@@ -1,46 +1,18 @@
 ﻿#if UNITY_EDITOR
-using Rosalina.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using Rosalina.Extensions;
 using UnityEditor;
-using UnityEngine;
+using Debug = UnityEngine.Debug;
 
-[System.Diagnostics.DebuggerDisplay("{Name} ({Path})")]
+[DebuggerDisplay("{Name} ({Path})")]
 internal class UIDocumentAsset
 {
     /// <summary>
-    /// Gets the UI Document name.
-    /// </summary>
-    public string Name { get; }
-
-    /// <summary>
-    /// Gets the UI Document output path.
-    /// </summary>
-    public string Path { get; }
-
-    /// <summary>
-    /// Gets the UI document full path.
-    /// </summary>
-    public string FullPath { get; }
-
-    /// <summary>
-    /// Gets the UI Document asset bindings output file.
-    /// </summary>
-    public string BindingsOutputFile { get; }
-
-    /// <summary>
-    /// Gets the UI Document UXML root node.
-    /// </summary>
-    public UxmlNode RootNode { get; }
-
-    /// <summary>
-    /// Gets a boolean value that indicates if the UI Document is an editor extension.
-    /// </summary>
-    public bool IsEditorExtension { get; }
-
-    /// <summary>
-    /// Creates a new <see cref="UIDocumentAsset"/> instance that represents a document to be generated.
+    ///     Creates a new <see cref="UIDocumentAsset" /> instance that represents a document to be generated.
     /// </summary>
     /// <param name="uiDocumentPath">UXML UI document file path.</param>
     /// <exception cref="ArgumentException">Thrown when the given file path is null, empty or with only white spaces.</exception>
@@ -54,13 +26,44 @@ internal class UIDocumentAsset
         Name = System.IO.Path.GetFileNameWithoutExtension(uiDocumentPath);
         Path = System.IO.Path.GetDirectoryName(uiDocumentPath);
         FullPath = uiDocumentPath;
-        RootNode = RosalinaUXMLParser.ParseUIDocument(FullPath) ?? throw new ArgumentNullException(nameof(RootNode), $"Failed to parse UXML file: '{FullPath}'");
+        RootNode = RosalinaUXMLParser.ParseUIDocument(FullPath) ??
+                   throw new ArgumentNullException(nameof(RootNode), $"Failed to parse UXML file: '{FullPath}'");
         IsEditorExtension = Convert.ToBoolean(RootNode.Attributes.GetValueOrDefault("editor-extension-mode"));
-        BindingsOutputFile = BuildOutputFile($"{Name}.g.cs");
+        BindingsOutputFile = BuildOutputFile($"{Name}Component.g.cs");
     }
 
     /// <summary>
-    /// Generates a C# script containing the bindings of the given UI document.
+    ///     Gets the UI Document name.
+    /// </summary>
+    public string Name { get; }
+
+    /// <summary>
+    ///     Gets the UI Document output path.
+    /// </summary>
+    public string Path { get; }
+
+    /// <summary>
+    ///     Gets the UI document full path.
+    /// </summary>
+    public string FullPath { get; }
+
+    /// <summary>
+    ///     Gets the UI Document asset bindings output file.
+    /// </summary>
+    public string BindingsOutputFile { get; }
+
+    /// <summary>
+    ///     Gets the UI Document UXML root node.
+    /// </summary>
+    public UxmlNode RootNode { get; }
+
+    /// <summary>
+    ///     Gets a boolean value that indicates if the UI Document is an editor extension.
+    /// </summary>
+    public bool IsEditorExtension { get; }
+
+    /// <summary>
+    ///     Generates a C# script containing the bindings of the given UI document.
     /// </summary>
     public void GenerateBindings()
     {
@@ -69,7 +72,7 @@ internal class UIDocumentAsset
         if (fileSetting == null)
         {
             Debug.LogWarning($"Cannot find '{Name}' in Rosalina's configuration. Ensure that binding generation is enabled for this file. " +
-                $"Right-Click on the UXML file > Rosalina > Properties... Then enable generation on Basic Settings.");
+                             "Right-Click on the UXML file > Rosalina > Properties... Then enable generation on Basic Settings.");
             return;
         }
 
@@ -86,7 +89,7 @@ internal class UIDocumentAsset
     }
 
     /// <summary>
-    /// Geneartes a C# script for the UI logic.
+    ///     Geneartes a C# script for the UI logic.
     /// </summary>
     public void GenerateScript(string outputFile)
     {
@@ -95,7 +98,7 @@ internal class UIDocumentAsset
         if (fileSetting == null)
         {
             Debug.LogWarning($"Cannot find '{Name}' in Rosalina's configuration. Ensure that binding generation is enabled for this file. " +
-                $"Right-Click on the UXML file > Rosalina > Properties... Then enable generation on Basic Settings.");
+                             "Right-Click on the UXML file > Rosalina > Properties... Then enable generation on Basic Settings.");
             return;
         }
 
@@ -112,22 +115,25 @@ internal class UIDocumentAsset
     }
 
     /// <summary>
-    /// Clears the bindings for the current UI Document.
+    ///     Clears the bindings for the current UI Document.
     /// </summary>
     public void ClearBindings()
     {
-        if (System.IO.File.Exists(BindingsOutputFile))
+        if (File.Exists(BindingsOutputFile))
         {
-            System.IO.File.Delete(BindingsOutputFile);
+            File.Delete(BindingsOutputFile);
             AssetDatabase.Refresh();
         }
     }
 
     /// <summary>
-    /// Gets the UXML child nodes based on the Root node.
+    ///     Gets the UXML child nodes based on the Root node.
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<UxmlNode> GetChildren() => RootNode.Children.FlattenTree(x => x.Children).Where(x => x.HasName);
+    public IEnumerable<UxmlNode> GetChildren()
+    {
+        return RootNode.Children.FlattenTree(x => x.Children).Where(x => x.HasName);
+    }
 
     private void ExecuteCodeGenerator(IRosalinaCodeGeneartor generator, string outputFile)
     {
@@ -139,16 +145,16 @@ internal class UIDocumentAsset
 
     private string BuildOutputFile(string fileName)
     {
-        string autogeneratedFolder = System.IO.Path.Combine("Assets", "Rosalina", "AutoGenerated");
+        string autogeneratedFolder = System.IO.Path.Combine("Assets", "Scripts", "Runtime", "Components");
 
         if (IsEditorExtension)
         {
             autogeneratedFolder = System.IO.Path.Combine(autogeneratedFolder, "Editor");
         }
 
-        if (!System.IO.Directory.Exists(autogeneratedFolder))
+        if (!Directory.Exists(autogeneratedFolder))
         {
-            System.IO.Directory.CreateDirectory(autogeneratedFolder);
+            Directory.CreateDirectory(autogeneratedFolder);
         }
 
         return System.IO.Path.Combine(autogeneratedFolder, fileName);

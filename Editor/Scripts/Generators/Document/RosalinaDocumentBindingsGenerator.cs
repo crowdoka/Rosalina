@@ -1,18 +1,17 @@
 ﻿#if UNITY_EDITOR
 
+using System;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Linq;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 internal class RosalinaDocumentBindingsGenerator : IRosalinaCodeGeneartor
 {
-    private const string DocumentFieldName = "_document";
+    private const string DocumentFieldName = "document";
     private const string RootVisualElementPropertyName = "Root";
     private const string InitializeDocumentMethodName = "InitializeDocument";
 
@@ -35,7 +34,7 @@ internal class RosalinaDocumentBindingsGenerator : IRosalinaCodeGeneartor
                 Block(initializationStatements)
             );
 
-        ClassDeclarationSyntax @class = ClassDeclaration(document.Name)
+        ClassDeclarationSyntax @class = ClassDeclaration($"{document.Name}Component")
             .AddModifiers(Token(SyntaxKind.PublicKeyword))
             .AddModifiers(Token(SyntaxKind.PartialKeyword))
             .AddMembers(
@@ -47,12 +46,17 @@ internal class RosalinaDocumentBindingsGenerator : IRosalinaCodeGeneartor
                 initializeMethod
             );
 
-        string code = CompilationUnit()
+        NamespaceDeclarationSyntax @namespace = NamespaceDeclaration(ParseName("Crowdoka.Crowdungeon.Runtime.Components")).NormalizeWhitespace();
+
+        @namespace = @namespace
             .AddUsings(
                 UsingDirective(IdentifierName("UnityEngine")),
                 UsingDirective(IdentifierName("UnityEngine.UIElements"))
-             )
-            .AddMembers(@class)
+            )
+            .AddMembers(@class);
+
+        string code = CompilationUnit()
+            .AddMembers(@namespace)
             .NormalizeWhitespace()
             .ToFullString();
 
@@ -65,27 +69,20 @@ internal class RosalinaDocumentBindingsGenerator : IRosalinaCodeGeneartor
 
         return FieldDeclaration(
                 VariableDeclaration(
-                    ParseName(typeof(UIDocument).Name)
-                )
-                .AddVariables(
-                    VariableDeclarator(DocumentFieldName)
-                )
-            )
-            .AddModifiers(Token(SyntaxKind.PrivateKeyword))
-            .AddAttributeLists(
-                AttributeList(
-                    SingletonSeparatedList(
-                        Attribute(serializeFieldName)
+                        ParseName(typeof(UIDocument).Name)
                     )
-                )
-            );
+                    .AddVariables(
+                        VariableDeclarator(DocumentFieldName)
+                    )
+            )
+            .AddModifiers(Token(SyntaxKind.PrivateKeyword));
     }
 
     private static MemberDeclarationSyntax CreateVisualElementRootProperty()
     {
         return PropertyDeclaration(
                 IdentifierName(typeof(VisualElement).Name), RootVisualElementPropertyName
-             )
+            )
             .AddModifiers(Token(SyntaxKind.PublicKeyword))
             .WithExpressionBody(
                 ArrowExpressionClause(
