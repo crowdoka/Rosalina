@@ -34,7 +34,7 @@ internal class RosalinaDocumentBindingsGenerator : IRosalinaCodeGeneartor
                 Block(initializationStatements)
             );
 
-        ClassDeclarationSyntax @class = ClassDeclaration($"{document.Name}Component")
+        ClassDeclarationSyntax @class = ClassDeclaration($"{document.FileSetting.FilePrefix}{document.Name}{document.FileSetting.FileSuffix}")
             .AddModifiers(Token(SyntaxKind.PublicKeyword))
             .AddModifiers(Token(SyntaxKind.PartialKeyword))
             .AddMembers(
@@ -46,7 +46,7 @@ internal class RosalinaDocumentBindingsGenerator : IRosalinaCodeGeneartor
                 initializeMethod
             );
 
-        NamespaceDeclarationSyntax @namespace = NamespaceDeclaration(ParseName("Crowdoka.Crowdungeon.Runtime.Components")).NormalizeWhitespace();
+        NamespaceDeclarationSyntax @namespace = NamespaceDeclaration(ParseName(document.FileSetting.Namespace)).NormalizeWhitespace();
 
         @namespace = @namespace
             .AddUsings(

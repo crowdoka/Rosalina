@@ -7,8 +7,8 @@ using UnityEngine.UIElements;
 
 public class RosalinaPropertiesEditorWindow : EditorWindow
 {
-    [SerializeField]
-    private VisualTreeAsset _visualTreeAsset;
+    [SerializeField] private VisualTreeAsset _visualTreeAsset;
+
     private RosalinaFileSetting _fileSettings = null;
 
     public VisualElement Container { get; private set; }
@@ -18,6 +18,14 @@ public class RosalinaPropertiesEditorWindow : EditorWindow
     public Toggle EnableFile { get; private set; }
 
     public EnumField GeneratorTypeSelector { get; private set; }
+
+    public TextField GeneratedPath { get; private set; }
+
+    public TextField Namespace { get; private set; }
+
+    public TextField FilePrefix { get; private set; }
+
+    public TextField FileSuffix { get; private set; }
 
     public Button GenerateBindingsButton { get; private set; }
 
@@ -38,10 +46,38 @@ public class RosalinaPropertiesEditorWindow : EditorWindow
         ClearBindingsButton.clicked -= OnClearBindings;
     }
 
+    private void CreateGUI()
+    {
+        rootVisualElement.Add(_visualTreeAsset.Instantiate());
+
+        Container = rootVisualElement.Q<VisualElement>("Container");
+        BasicSettingsContainer = rootVisualElement.Q<VisualElement>("BasicSettingsContainer");
+        EnableFile = rootVisualElement.Q<Toggle>("EnableFile");
+        GeneratorTypeSelector = rootVisualElement.Q<EnumField>("GeneratorTypeSelector");
+        GeneratedPath = rootVisualElement.Q<TextField>("GeneratedPath");
+        Namespace = rootVisualElement.Q<TextField>("Namespace");
+        FilePrefix = rootVisualElement.Q<TextField>("FilePrefix");
+        FileSuffix = rootVisualElement.Q<TextField>("FileSuffix");
+        GenerateBindingsButton = rootVisualElement.Q<Button>("GenerateBindingsButton");
+        GenerateScriptButton = rootVisualElement.Q<Button>("GenerateScriptButton");
+        ClearBindingsButton = rootVisualElement.Q<Button>("ClearBindingsButton");
+
+        OnSelectionChange();
+        EnableFile.RegisterValueChangedCallback(OnEnableFileChanged);
+        GeneratorTypeSelector.RegisterValueChangedCallback(OnGeneratorTypeSelectionChanged);
+        GeneratedPath.RegisterValueChangedCallback(OnPathChanged);
+        Namespace.RegisterValueChangedCallback(OnNamespaceChanged);
+        FilePrefix.RegisterValueChangedCallback(OnFilePrefixChanged);
+        FileSuffix.RegisterValueChangedCallback(OnFileSuffixChanged);
+        GenerateBindingsButton.clicked += OnGenerateBindings;
+        GenerateScriptButton.clicked += OnGenerateScripts;
+        ClearBindingsButton.clicked += OnClearBindings;
+    }
+
     private void OnSelectionChange()
     {
         bool isActive = Selection.activeObject != null && Selection.activeObject.GetType() == typeof(VisualTreeAsset);
-        
+
         Container.SetEnabled(isActive);
 
         if (isActive)
@@ -57,26 +93,6 @@ public class RosalinaPropertiesEditorWindow : EditorWindow
         RefreshFileSettings();
     }
 
-    private void CreateGUI()
-    {
-        rootVisualElement.Add(_visualTreeAsset.Instantiate());
-
-        Container = rootVisualElement.Q<VisualElement>("Container");
-        BasicSettingsContainer = rootVisualElement.Q<VisualElement>("BasicSettingsContainer");
-        EnableFile = rootVisualElement.Q<Toggle>("EnableFile");
-        GeneratorTypeSelector = rootVisualElement.Q<EnumField>("GeneratorTypeSelector");
-        GenerateBindingsButton = rootVisualElement.Q<Button>("GenerateBindingsButton");
-        GenerateScriptButton = rootVisualElement.Q<Button>("GenerateScriptButton");
-        ClearBindingsButton = rootVisualElement.Q<Button>("ClearBindingsButton");
-
-        OnSelectionChange();
-        EnableFile.RegisterValueChangedCallback(OnEnableFileChanged);
-        GeneratorTypeSelector.RegisterValueChangedCallback(OnGeneratorTypeSelectionChanged);
-        GenerateBindingsButton.clicked += OnGenerateBindings;
-        GenerateScriptButton.clicked += OnGenerateScripts;
-        ClearBindingsButton.clicked += OnClearBindings;
-    }
-
     private void RefreshFileSettings()
     {
         EnableFile.SetValueWithoutNotify(_fileSettings != null);
@@ -85,10 +101,18 @@ public class RosalinaPropertiesEditorWindow : EditorWindow
         if (_fileSettings != null)
         {
             GeneratorTypeSelector.value = _fileSettings.Type;
+            GeneratedPath.value = _fileSettings.GeneratedPath;
+            Namespace.value = _fileSettings.Namespace;
+            FilePrefix.value = _fileSettings.FilePrefix;
+            FileSuffix.value = _fileSettings.FileSuffix;
         }
         else
         {
             GeneratorTypeSelector.value = null;
+            GeneratedPath.value = null;
+            Namespace.value = null;
+            FilePrefix.value = null;
+            FileSuffix.value = null;
         }
     }
 
@@ -99,7 +123,9 @@ public class RosalinaPropertiesEditorWindow : EditorWindow
             _fileSettings = new RosalinaFileSetting
             {
                 Path = AssetDatabase.GetAssetPath(Selection.activeObject),
-                Type = RosalinaGenerationType.Document
+                Type = RosalinaGenerationType.Document,
+                GeneratedPath = RosalinaSettings.instance.DefaultGeneratedPath,
+                Namespace = RosalinaSettings.instance.DefaultNamespace
             };
             RosalinaSettings.instance.Files.Add(_fileSettings);
         }
@@ -124,10 +150,54 @@ public class RosalinaPropertiesEditorWindow : EditorWindow
         }
     }
 
+    private void OnPathChanged(ChangeEvent<string> @event)
+    {
+        if (@event.newValue != null && @event.newValue != @event.previousValue)
+        {
+            _fileSettings.GeneratedPath = @event.newValue;
+
+            RefreshFileSettings();
+            OnSettingsChanged();
+        }
+    }
+
+    private void OnNamespaceChanged(ChangeEvent<string> @event)
+    {
+        if (@event.newValue != null && @event.newValue != @event.previousValue)
+        {
+            _fileSettings.Namespace = @event.newValue;
+
+            RefreshFileSettings();
+            OnSettingsChanged();
+        }
+    }
+
+    private void OnFilePrefixChanged(ChangeEvent<string> @event)
+    {
+        if (@event.newValue != null && @event.newValue != @event.previousValue)
+        {
+            _fileSettings.FilePrefix = @event.newValue;
+
+            RefreshFileSettings();
+            OnSettingsChanged();
+        }
+    }
+
+    private void OnFileSuffixChanged(ChangeEvent<string> @event)
+    {
+        if (@event.newValue != null && @event.newValue != @event.previousValue)
+        {
+            _fileSettings.FileSuffix = @event.newValue;
+
+            RefreshFileSettings();
+            OnSettingsChanged();
+        }
+    }
+
     private void OnGenerateBindings()
     {
         string assetPath = AssetDatabase.GetAssetPath(Selection.activeObject);
-        var document = new UIDocumentAsset(assetPath);
+        UIDocumentAsset document = new(assetPath);
 
         document.GenerateBindings();
         AssetDatabase.Refresh();
@@ -136,7 +206,7 @@ public class RosalinaPropertiesEditorWindow : EditorWindow
     private void OnGenerateScripts()
     {
         string assetPath = AssetDatabase.GetAssetPath(Selection.activeObject);
-        var document = new UIDocumentAsset(assetPath);
+        UIDocumentAsset document = new(assetPath);
 
         bool bindingsGenerated = RosalinaScriptGeneratorUtilities.TryGenerateBindings(document);
         bool scriptGenerated = RosalinaScriptGeneratorUtilities.TryGenerateScript(document);
@@ -150,7 +220,7 @@ public class RosalinaPropertiesEditorWindow : EditorWindow
     private void OnClearBindings()
     {
         string assetPath = AssetDatabase.GetAssetPath(Selection.activeObject);
-        var document = new UIDocumentAsset(assetPath);
+        UIDocumentAsset document = new(assetPath);
 
         document.ClearBindings();
         AssetDatabase.Refresh();

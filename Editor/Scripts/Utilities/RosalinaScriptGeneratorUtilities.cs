@@ -3,13 +3,13 @@ using System.IO;
 using UnityEditor;
 
 /// <summary>
-/// Provides utility methods for the scripting generation.
+///     Provides utility methods for the scripting generation.
 /// </summary>
 internal static class RosalinaScriptGeneratorUtilities
 {
     public static bool TryGenerateBindings(UIDocumentAsset document)
     {
-        if (!File.Exists(document.BindingsOutputFile) && AskGenerateBindings())
+        if (!File.Exists(document.BindingsLastOutputFile) && AskGenerateBindings())
         {
             document.GenerateBindings();
 
@@ -21,11 +21,11 @@ internal static class RosalinaScriptGeneratorUtilities
 
     public static bool TryGenerateScript(UIDocumentAsset document)
     {
-        string scriptPath = Path.Combine(document.Path, $"{document.Name}.cs");
+        string scriptPath = document.ScriptLastOutputFile;
 
         if (!File.Exists(scriptPath) || (File.Exists(scriptPath) && AskOverrideExistingScript()))
         {
-            document.GenerateScript(scriptPath);
+            document.GenerateScript();
 
             return true;
         }

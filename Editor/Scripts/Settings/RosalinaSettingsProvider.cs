@@ -9,10 +9,10 @@ using UnityEngine.UIElements;
 
 public class RosalinaSettingsProvider : SettingsProvider
 {
-    private RosalinaSettings _settings;
     private ReorderableList _fileList;
+    private RosalinaSettings _settings;
 
-    public RosalinaSettingsProvider(string path, SettingsScope scopes, IEnumerable<string> keywords = null) 
+    public RosalinaSettingsProvider(string path, SettingsScope scopes, IEnumerable<string> keywords = null)
         : base(path, scopes, keywords)
     {
     }
@@ -48,8 +48,8 @@ public class RosalinaSettingsProvider : SettingsProvider
             rect.y += 2;
             EditorGUI.BeginDisabledGroup(true);
             element.Type = (RosalinaGenerationType)EditorGUI.EnumPopup(
-                 new Rect(rect.x, rect.y, 120, EditorGUIUtility.singleLineHeight),
-                 element.Type);
+                new Rect(rect.x, rect.y, 120, EditorGUIUtility.singleLineHeight),
+                element.Type);
             EditorGUI.TextField(
                 new Rect(rect.x + 130, rect.y, rect.width - 200, EditorGUIUtility.singleLineHeight),
                 element.Path);
@@ -64,6 +64,8 @@ public class RosalinaSettingsProvider : SettingsProvider
             EditorGUI.BeginChangeCheck();
 
             _settings.IsEnabled = EditorGUILayout.Toggle("Is Enabled", _settings.IsEnabled);
+            _settings.DefaultGeneratedPath = EditorGUILayout.TextField("Default Path", _settings.DefaultGeneratedPath);
+            _settings.DefaultNamespace = EditorGUILayout.TextField("Default Namespace", _settings.DefaultNamespace);
             EditorGUILayout.LabelField("Files");
             _fileList.DoLayoutList();
 
@@ -75,12 +77,15 @@ public class RosalinaSettingsProvider : SettingsProvider
     }
 
     [SettingsProvider]
-    public static SettingsProvider CreateRosalinaSettingsProvider() => new RosalinaSettingsProvider("Project/Rosalina", SettingsScope.Project);
+    public static SettingsProvider CreateRosalinaSettingsProvider()
+    {
+        return new RosalinaSettingsProvider("Project/Rosalina", SettingsScope.Project);
+    }
 
     private static IDisposable CreateSettingsWindowGUIScope()
     {
-        var unityEditorAssembly = Assembly.GetAssembly(typeof(EditorWindow));
-        var type = unityEditorAssembly.GetType("UnityEditor.SettingsWindow+GUIScope");
+        Assembly unityEditorAssembly = Assembly.GetAssembly(typeof(EditorWindow));
+        Type type = unityEditorAssembly.GetType("UnityEditor.SettingsWindow+GUIScope");
 
         return Activator.CreateInstance(type) as IDisposable;
     }

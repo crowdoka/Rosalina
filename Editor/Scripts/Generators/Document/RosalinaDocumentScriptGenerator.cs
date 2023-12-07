@@ -1,9 +1,9 @@
 ﻿#if UNITY_EDITOR
 
+using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using UnityEngine;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -18,15 +18,15 @@ internal class RosalinaDocumentScriptGenerator : IRosalinaCodeGeneartor
             throw new ArgumentNullException(nameof(documentAsset), "Cannot generate binding with a null document asset.");
         }
 
-        ClassDeclarationSyntax @class = ClassDeclaration(documentAsset.Name)
-           .AddModifiers(Token(SyntaxKind.PublicKeyword))
-           .AddModifiers(Token(SyntaxKind.PartialKeyword))
-           .AddBaseListTypes(
-               SimpleBaseType(ParseName(typeof(MonoBehaviour).Name))
-           )
-           .AddMembers(
-                // private void OnEnable()
-                MethodDeclaration(ParseTypeName("void"), "OnEnable")
+        ClassDeclarationSyntax @class = ClassDeclaration($"{documentAsset.FileSetting.FilePrefix}{documentAsset.Name}{documentAsset.FileSetting.FileSuffix}")
+            .AddModifiers(Token(SyntaxKind.PublicKeyword))
+            .AddModifiers(Token(SyntaxKind.PartialKeyword))
+            .AddBaseListTypes(
+                SimpleBaseType(ParseName(typeof(MonoBehaviour).Name))
+            )
+            .AddMembers(
+                // private void Awake()
+                MethodDeclaration(ParseTypeName("void"), "Awake")
                     .AddModifiers(Token(SyntaxKind.PrivateKeyword))
                     .WithBody(
                         Block(
@@ -37,15 +37,20 @@ internal class RosalinaDocumentScriptGenerator : IRosalinaCodeGeneartor
                     )
             );
 
-        string code = CompilationUnit()
+        NamespaceDeclarationSyntax @namespace = NamespaceDeclaration(ParseName(documentAsset.FileSetting.Namespace)).NormalizeWhitespace();
+
+        @namespace = @namespace
             .AddUsings(
                 UsingDirective(IdentifierName("UnityEngine"))
             )
-            .AddMembers(@class)
+            .AddMembers(@class);
+
+        string code = CompilationUnit()
+            .AddMembers(@namespace)
             .NormalizeWhitespace()
             .ToFullString();
 
-        return new RosalinaGenerationResult(code, includeHeader: false);
+        return new RosalinaGenerationResult(code, false);
     }
 }
 

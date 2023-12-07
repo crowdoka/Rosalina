@@ -6,6 +6,10 @@
             <ui:VisualElement name="BasicSettingsContainer" style="flex-grow: 0; background-color: rgba(0, 0, 0, 0); margin-top: 0;">
                 <ui:EnumField label="Generator type" type="RosalinaGenerationType, com.eastylabs.rosalina" name="GeneratorTypeSelector" />
             </ui:VisualElement>
+            <ui:TextField label="Path" name="GeneratedPath" />
+            <ui:TextField label="Namespace" name="Namespace" />
+            <ui:TextField label="File name prefix" name="FilePrefix" />
+            <ui:TextField label="File name suffix" name="FileSuffix" />
         </ui:VisualElement>
         <ui:Label tabindex="-1" text="Tools" display-tooltip-when-elided="true" name="ToolsTitleLabel" style="-unity-font-style: bold; font-size: 12px; margin-top: 8px;" />
         <ui:VisualElement name="ToolsContainer" style="flex-grow: 1; background-color: rgba(0, 0, 0, 0); margin-top: 8px;">
